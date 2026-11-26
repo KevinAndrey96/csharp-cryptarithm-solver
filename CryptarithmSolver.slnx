@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Cryptarithm/Cryptarithm.csproj" />
+    <Project Path="src/Cryptarithm.Cli/Cryptarithm.Cli.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Cryptarithm.Tests/Cryptarithm.Tests.csproj" />
+  </Folder>
+</Solution>

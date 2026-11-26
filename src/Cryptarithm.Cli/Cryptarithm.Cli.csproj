@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>cryptarithm-cli</AssemblyName>
+    <RootNamespace>Cryptarithm.Cli</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Cryptarithm\Cryptarithm.csproj" />
+  </ItemGroup>
+
+</Project>

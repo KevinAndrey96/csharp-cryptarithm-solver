@@ -1,0 +1,7 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Cryptarithm solver: parses equations over letter words and finds digit assignments by backtracking with early equation checks.</Description>
+  </PropertyGroup>
+
+</Project>
