@@ -1,103 +1,159 @@
-# Solucionador de Criptoaritmética de División en C# (.NET)
+# Solucionador de criptoaritmética en C# (.NET 10)
 
-[![.NET](https://img.shields.io/badge/.NET-C%23-purple.svg)](https://dotnet.microsoft.com/)
-[![Algorithms](https://img.shields.io/badge/Algorithms-Constraint%20Satisfaction-blue.svg)](https://en.wikipedia.org/wiki/Cryptarithm)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://github.com/KevinAndrey96/csharp-cryptarithm-solver/actions/workflows/ci.yml/badge.svg)](https://github.com/KevinAndrey96/csharp-cryptarithm-solver/actions/workflows/ci.yml)
+![.NET 10](https://img.shields.io/badge/.NET-10%20LTS-512BD4?logo=dotnet&logoColor=white)
+![C# 14](https://img.shields.io/badge/C%23-14-239120?logo=csharp&logoColor=white)
+![xUnit v3](https://img.shields.io/badge/xUnit-v3-5E2B97)
+![Cobertura 99 %](https://img.shields.io/badge/cobertura-99%25-brightgreen)
+[![Licencia MIT](https://img.shields.io/badge/licencia-MIT-green)](LICENSE)
 
-Solucionador algorítmico en **C# (.NET)** para problemas clásicos de **criptoaritmética (alfamética)** basados en esquemas de división aritmética manual larga. El algoritmo implementa un motor de búsqueda y satisfacción de restricciones (CSP) para deducir la asignación biyectiva única de dígitos enteros a letras incógnitas.
+Solucionador de **criptoaritmética** (alfaméticas) en **C#**: recibe ecuaciones donde cada letra representa un dígito, como `SEND + MORE = MONEY`, y encuentra todas las asignaciones válidas con **búsqueda con retroceso** y **poda por columnas**. Nació para resolver una **división larga** propuesta en clase en 2019 y hoy resuelve cualquier sistema de ecuaciones con suma, resta y multiplicación.
 
----
+## Contenido
 
-## 🧩 Fundamento de la Criptoaritmética
+- [El problema de clase](#el-problema-de-clase)
+- [Uso](#uso)
+- [Algoritmo](#algoritmo)
+- [Lenguaje de ecuaciones](#lenguaje-de-ecuaciones)
+- [Defectos de la versión de 2019 corregidos](#defectos-de-la-versión-de-2019-corregidos)
+- [Arquitectura](#arquitectura)
+- [Pruebas y calidad](#pruebas-y-calidad)
+- [Historia del proyecto](#historia-del-proyecto)
 
-La criptoaritmética es un tipo de acertijo matemático donde las operaciones aritméticas clásicas (adición, sustracción, multiplicación o división) tienen sus dígitos del $0$ al $9$ reemplazados por letras del alfabeto.
+## El problema de clase
 
-Las reglas fundamentales que rigen estos sistemas son:
-1. **Biyectividad estricta**: Cada letra representa un único dígito decimal ($0 \dots 9$), y dos letras distintas no pueden compartir el mismo valor numérico.
-2. **Sin ceros a la izquierda**: Las letras que ocupan la posición más significativa de un número (como $U, Y, X$) deben ser estrictamente distintas de cero ($1 \dots 9$).
-3. **Consistencia posicional**: La operación aritmética debe cumplirse con exactitud en base 10 respetando el acarreo y los residuos intermedios de cada etapa de la división.
-
----
-
-## 🔬 Modelo Aritmético del Problema
-
-El programa resuelve el problema de división planteado en el curso de teoría de la información y criptografía:
-
-```text
-       S  T  U
-     - R  T  Y  X
-     ------------
-          T  Y  Y
-```
-
-Donde intervienen las variables $U, L, M, N, R, T, Y, X, S, J$, sujetas al sistema de ecuaciones algebraicas posicionales:
-
-1. **Primera Multiplicación Parcial**:
-   $$U \times (100L + 10M + N) = 1000R + 100T + 10Y + X$$
-
-2. **Resta y Residuo Intermedio**:
-   $$(100S + 10T + U) - (100T + 10Y + X) = 100T + 10Y + Y$$
-
-3. **Segunda Multiplicación Parcial**:
-   $$X \times (100L + 10M + N) = 1000T + 100Y + 10Y + J$$
-
-4. **Verificación de Residuos**:
-   $$(N - J) = Y$$
-
-El algoritmo evalúa el espacio combinatorio mediante bucles anidados con evaluación en cortocircuito y poda temprana (*pruning*), reduciendo drásticamente las iteraciones necesarias hasta aislar la solución matemática válida.
-
----
-
-## 📂 Estructura del Proyecto
+Reconstruir la división larga en la que cada letra es un dígito distinto:
 
 ```text
-crypto/
-├── Crypto.sln            # Archivo de solucion de Visual Studio
-└── Crypto/
-    ├── Program.cs        # Punto de entrada con el motor de resolucion algoritmica
-    ├── App.config        # Configuracion de ejecucion .NET
-    └── Crypto.csproj     # Definicion de proyecto en C#
+             U X                       9 7
+        ----------                ----------
+  L M N ) R S T U N        6 0 3 ) 5 8 4 9 3
+          R T Y X                  5 4 2 7
+          -------                  -------
+            T Y Y N                  4 2 2 3
+            T Y Y J                  4 2 2 1
+            -------                  -------
+                  Y                        2
 ```
 
----
+Cada paso del algoritmo escrito es una ecuación:
 
-## 🚀 Requisitos y Compilación
+| Paso | Ecuación |
+| --- | --- |
+| Primer producto parcial | $U \cdot LMN = RTYX$ |
+| Primera resta | $RSTU - RTYX = TYY$ |
+| Segundo producto parcial | $X \cdot LMN = TYYJ$ |
+| Segunda resta | $TYYN - TYYJ = Y$ |
+| Prueba de la división | $LMN \cdot UX + Y = RSTUN$ |
 
-### Prerrequisitos
+La única solución es $603 \cdot 97 + 2 = 58493$, y sigue siendo única aunque se permita repetir dígitos.
 
-- **.NET SDK** (o Visual Studio 2017/2019/2022 / Mono en entornos Unix).
-
-### Compilación y Ejecución con .NET CLI
+## Uso
 
 ```bash
-# Compilar y ejecutar directamente desde la terminal
-dotnet run --project Crypto/Crypto.csproj
+dotnet build -c Release
+dotnet src/Cryptarithm.Cli/bin/Release/net10.0/cryptarithm-cli.dll resolver division
 ```
-
-### Ejecución con Mono (macOS / Linux)
-
-```bash
-# Compilar con mcs (Mono C# Compiler)
-mcs -out:Crypto.exe Crypto/Program.cs
-
-# Ejecutar el binario generado
-mono Crypto.exe
-```
-
----
-
-## 💻 Salida del Algoritmo
-
-Al satisfacer todas las restricciones aritméticas, el programa reporta los valores asignados a cada variable:
 
 ```text
-Por favor espere...
-Solución encontrada:
-U: 8, L: 1, M: 2, N: 4, R: 0, T: 9, Y: 9, X: 2, S: 1, J: 5
+División larga RSTUN ÷ LMN = UX con residuo Y (problema de clase)
+  U * LMN = RTYX
+  RSTU - RTYX = TYY
+  X * LMN = TYYJ
+  TYYN - TYYJ = Y
+  LMN * UX + Y = RSTUN
+
+Solución 1: J=1 L=6 M=0 N=3 R=5 S=8 T=4 U=9 X=7 Y=2
+  9 * 603 = 5427
+  5849 - 5427 = 422
+  7 * 603 = 4221
+  4223 - 4221 = 2
+  603 * 97 + 2 = 58493
+
+1 solución, 1.096 asignaciones probadas.
 ```
 
----
+| Comando | Efecto |
+| --- | --- |
+| `listar` | Muestra los acertijos incluidos: `division`, `send-more-money` y `tehe-ahaha` |
+| `resolver <nombre>` | Resuelve un acertijo incluido |
+| `ecuacion "TO + GO = OUT" [...]` | Resuelve un sistema propio, una ecuación por argumento |
+| `--repetir-digitos` | Permite que letras distintas compartan dígito |
 
-## 📄 Licencia
+Se imprimen las primeras 10 soluciones y se cuentan todas. Códigos de salida: `0` con solución, `1` sin solución y `2` ante un comando o una ecuación inválidos, con la columna exacta del error.
 
-Distribuido bajo la Licencia MIT. Consulta el archivo `LICENSE` para más información.
+## Algoritmo
+
+**Retroceso.** Se asigna un dígito a una letra a la vez, sin repetir dígitos y sin ceros a la izquierda en palabras de dos o más letras. Si una asignación parcial ya contradice alguna ecuación, se descarta toda esa rama.
+
+**Poda por columnas.** La suma, la resta y la multiplicación conmutan con el módulo:
+
+$$
+(a \circ b) \bmod 10^k = \big((a \bmod 10^k) \circ (b \bmod 10^k)\big) \bmod 10^k, \qquad \circ \in \{+, -, \times\}
+$$
+
+Por eso, en cuanto las últimas $k$ letras de cada palabra de una ecuación tienen dígito, los últimos $k$ dígitos de ambos lados ya deben coincidir. El solucionador asigna las letras **por columnas, de las unidades hacia la izquierda**, como se resuelven a mano, y verifica cada ecuación al completar cada columna. Así descarta una rama equivocada mucho antes de llegar a las cifras más significativas.
+
+| Acertijo | Espacio de búsqueda | Asignaciones probadas |
+| --- | --- | --- |
+| División de clase (10 letras) | $7{,}29 \times 10^9$ combinaciones en los ciclos de 2019 | 1.096 |
+| `SEND + MORE = MONEY` (8 letras) | $10!/2! = 1.814.400$ asignaciones completas | 7.956 |
+| `TEHE + AHAHA = TEHAW` (5 letras) | $30.240$ asignaciones completas | 1.258 |
+
+Los valores se calculan con `Int128` y aritmética verificada, así que un desbordamiento nunca produce una solución falsa.
+
+## Lenguaje de ecuaciones
+
+```text
+ecuación := suma '=' suma
+suma     := producto (('+' | '-') producto)*
+producto := factor ('*' factor)*
+factor   := palabra | número | '(' suma ')'
+```
+
+Las palabras son letras de la A a la Z (se aceptan minúsculas) de hasta 18 letras, y los números son literales decimales. El analizador es descendente recursivo y reporta la columna del error: `expected '=' at column 12 of "SEND + MORE"`.
+
+## Defectos de la versión de 2019 corregidos
+
+| Defecto original | Corrección |
+| --- | --- |
+| Diez ciclos `for` anidados recorrían $7{,}29 \times 10^9$ combinaciones | Retroceso con poda por columnas: 1.096 asignaciones |
+| No exigía que letras distintas tuvieran dígitos distintos | Dígitos distintos por defecto, `--repetir-digitos` como opción |
+| `Console.ReadKey()` detenía el programa en cada solución | Lista de soluciones y conteo final |
+| El acertijo estaba escrito en el código; el segundo ejercicio quedó comentado | Analizador de ecuaciones y catálogo con ambos ejercicios |
+| Proyecto de .NET Framework con binarios y caché de Visual Studio en el repositorio | SDK de .NET 10, `.gitignore` e historial purgado |
+
+## Arquitectura
+
+| Proyecto | Contenido |
+| --- | --- |
+| `src/Cryptarithm` | Biblioteca: árbol de expresiones (`Word`, `Number`, `Binary`, `Equation`), `Parser`, `Puzzle`, `Solver` y `Catalog` |
+| `src/Cryptarithm.Cli` | Interfaz de línea de comandos en español |
+| `tests/Cryptarithm.Tests` | Pruebas xUnit v3 sobre Microsoft Testing Platform |
+
+`Directory.Build.props` activa los tipos de referencia anulables, los analizadores `latest-recommended`, el estilo de código en compilación y `TreatWarningsAsErrors` en todos los proyectos.
+
+## Pruebas y calidad
+
+```bash
+dotnet test -c Release --coverage --coverage-output-format cobertura
+```
+
+- 48 pruebas con 99 % de cobertura de líneas.
+- El solucionador se compara con la enumeración exhaustiva de todas las asignaciones en 60 acertijos aleatorios, con y sin dígitos distintos.
+- La evaluación por columnas se compara con la evaluación completa módulo $10^k$ en 500 asignaciones aleatorias.
+- Los resultados de la división, `SEND + MORE = MONEY` y sus 155 soluciones con dígitos repetidos se verificaron además con un programa independiente en Python.
+
+GitHub Actions compila y prueba en Linux, Windows y macOS, y ejecuta una prueba de humo de la CLI.
+
+## Historia del proyecto
+
+Ejercicio de mayo de 2019 escrito en Visual Studio con .NET Framework. El código original se conserva en la etiqueta [`v0.1-csharp-coursework-2019`](https://github.com/KevinAndrey96/csharp-cryptarithm-solver/tree/v0.1-csharp-coursework-2019); la caché de Visual Studio y los binarios compilados se purgaron del historial. En 2026 se reescribió como biblioteca con analizador de ecuaciones, poda por columnas, pruebas y CI.
+
+## Autor
+
+**Kevin Andrey Herrera Silva** · [GitHub](https://github.com/KevinAndrey96)
+
+## Licencia
+
+[MIT](LICENSE) © 2019-2026 Kevin Andrey Herrera Silva
