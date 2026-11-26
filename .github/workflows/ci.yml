@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: .NET 10 on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Build with warnings as errors
+        run: dotnet build -c Release
+
+      - name: Test with coverage
+        run: dotnet test -c Release --no-build --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml
+
+      - name: Command line smoke test
+        shell: bash
+        run: |
+          cli="dotnet src/Cryptarithm.Cli/bin/Release/net10.0/cryptarithm-cli.dll"
+          $cli resolver division | tee output.txt
+          grep -q "603 \* 97 + 2 = 58493" output.txt
+          $cli ecuacion "SEND + MORE = MONEY" | grep -q "9567 + 1085 = 10652"
+          if $cli ecuacion "A + A = B" "B = 1"; then exit 1; fi
+          if $cli resolver fermat; then exit 1; fi
